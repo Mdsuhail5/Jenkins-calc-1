@@ -37,6 +37,14 @@ pipeline {
             }
         }
 
+        
+        stage('Run Docker Container') {
+            steps {
+                echo 'Running application inside Docker...'
+                bat 'docker run --rm jenkins-python-app:1.0'
+            }
+        }
+
         stage('Run Application') {
             steps {
                 bat '"C:\\Users\\Suhail.DESKTOP-0CIIIA7\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" app.py'
