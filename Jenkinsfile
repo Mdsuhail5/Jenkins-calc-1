@@ -38,9 +38,7 @@ pipeline {
         }
 
         
-        
-        
-        stage('Push to Docker Hub') {
+        stage('Verify Docker Hub Credentials') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
@@ -48,22 +46,19 @@ pipeline {
                     passwordVariable: 'DOCKERHUB_TOKEN'
                 )]) {
                     powershell '''
-                        $env:DOCKERHUB_TOKEN | docker login --username $env:DOCKERHUB_USERNAME --password-stdin
-                        if ($LASTEXITCODE -ne 0) {
+                        if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_USERNAME)) {
+                        Write-Error "Docker Hub username is missing"
                         exit 1
                         }
 
-                        docker tag jenkins-calc-1-app:1.0 "$env:DOCKERHUB_USERNAME/jenkins-calc-1-app:1.0"
-                        if ($LASTEXITCODE -ne 0) {
+                        if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_TOKEN)) {
+                            Write-Error "Docker Hub token is missing"
                             exit 1
                         }
 
-                        docker push "$env:DOCKERHUB_USERNAME/jenkins-calc-1-app:1.0"
-                        if ($LASTEXITCODE -ne 0) {
-                            exit 1
-                        }
-
-                        docker logout
+                        Write-Host "Credential lookup successful"
+                        Write-Host "Username: $env:DOCKERHUB_USERNAME"
+                        Write-Host "Token: Present (hidden)"
                     '''
                 }
             }
