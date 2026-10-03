@@ -29,6 +29,13 @@ pipeline {
                 bat '"C:\\Users\\Suhail.DESKTOP-0CIIIA7\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" -m pytest -v'
             }
         }
+        
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                bat 'docker build -t jenkins-python-app:1.0 .'
+            }
+        }
 
         stage('Run Application') {
             steps {
