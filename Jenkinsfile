@@ -38,6 +38,7 @@ pipeline {
         }
 
         
+        
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
@@ -47,9 +48,15 @@ pipeline {
                 )]) {
                     bat '''
                         @echo off
-                        docker login -u %DOCKERHUB_USERNAME% --password-stdin
-                        docker tag jenkins-calc-1-app:1.0 drek001/jenkins-calc-1-app:1.0
-                        docker push drek001/jenkins-calc-1-app:1.0
+                        echo %DOCKERHUB_TOKEN% | docker login -u %DOCKERHUB_USERNAME% --password-stdin
+                        if errorlevel 1 exit /b 1
+
+                        docker tag jenkins-calc-1-app:1.0 %DOCKERHUB_USERNAME%/jenkins-calc-1-app:1.0
+                        if errorlevel 1 exit /b 1
+
+                        docker push %DOCKERHUB_USERNAME%/jenkins-calc-1-app:1.0
+                        if errorlevel 1 exit /b 1
+
                         docker logout
                     '''
                 }
