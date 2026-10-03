@@ -33,7 +33,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
-                bat 'docker build -t jenkins-python-app:1.0 .'
+                bat 'docker build -t jenkins-calc-1-app:1.0 .'
             }
         }
 
