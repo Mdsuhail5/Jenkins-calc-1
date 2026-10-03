@@ -5,6 +5,6 @@ def sub(a,b):
     return a-b
 
 if __name__=="__main__":
-    print("Welcome to Jenkins CI/CD pipeline")
+    print("Welcome to Automated Jenkins CI/CD!")
     print("Addition",add(5,3))
     print("Subtraction",sub(5,3))
