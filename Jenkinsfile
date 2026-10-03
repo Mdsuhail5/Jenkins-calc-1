@@ -41,7 +41,7 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 echo 'Running application inside Docker...'
-                bat 'docker run --rm jenkins-python-app:1.0'
+                bat 'docker run --rm jenkins-calc-1-app:1.0'
             }
         }
 
