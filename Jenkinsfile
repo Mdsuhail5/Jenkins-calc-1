@@ -38,6 +38,24 @@ pipeline {
         }
 
         
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKERHUB_USERNAME',
+                    passwordVariable: 'DOCKERHUB_TOKEN'
+                )]) {
+                    bat '''
+                        @echo off
+                        docker login -u %DOCKERHUB_USERNAME% --password-stdin
+                        docker tag jenkins-calc-1-app:1.0 drek001/jenkins-calc-1-app:1.0
+                        docker push drek001/jenkins-calc-1-app:1.0
+                        docker logout
+                    '''
+                }
+            }
+        }
+        
         stage('Run Docker Container') {
             steps {
                 echo 'Running application inside Docker...'
