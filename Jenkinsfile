@@ -71,6 +71,39 @@ pipeline {
             }
         }
 
+        stage('Test Docker Hub Login') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    )
+                ]) {
+                    powershell '''
+                        Write-Host "Username: $env:DOCKERHUB_USERNAME"
+                        Write-Host "Token length: $($env:DOCKERHUB_TOKEN.Length)"
+
+                        Write-Host "Attempting Docker Hub login..."
+
+                        $env:DOCKERHUB_TOKEN | docker login `
+                            --username $env:DOCKERHUB_USERNAME `
+                            --password-stdin
+
+                        $loginExitCode = $LASTEXITCODE
+
+                        Write-Host "Docker login exit code: $loginExitCode"
+
+                        if ($loginExitCode -ne 0) {
+                            throw "Docker Hub authentication failed."
+                        }
+
+                        Write-Host "Docker Hub authentication successful."
+                    '''
+                }
+            }
+        }
+        
         stage('Run Docker Container') {
             steps {
                 bat 'docker run --rm drek001/jenkins-calc-1-app:1.0'
