@@ -2,85 +2,126 @@
 pipeline {
     agent any
 
+    options {
+        timestamps()
+    }
+
+    environment {
+        IMAGE_NAME = 'jenkins-calc-1-app'
+        IMAGE_TAG = '1.0'
+        DOCKERHUB_REPO = 'drek001/jenkins-calc-1-app'
+    }
+
     stages {
+
         stage('Checkout') {
             steps {
-                echo 'Getting project files from GitHub'
+                checkout scm
                 bat 'dir'
             }
         }
 
-        stage('Check Python') {
+        stage('Check Python and Docker') {
             steps {
-                bat '"C:\\Users\\Suhail.DESKTOP-0CIIIA7\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" --version'
+                bat 'python --version'
+                bat 'docker --version'
             }
         }
 
-        stage('Build') {
+        stage('Install Dependencies') {
             steps {
-                echo 'Installing dependencies'
-                bat '"C:\\Users\\Suhail.DESKTOP-0CIIIA7\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" -m pip install -r requirements.txt'
+                bat 'python -m pip install -r requirements.txt'
             }
         }
 
-        stage('Test') {
+        stage('Run Tests') {
             steps {
-                echo 'Running tests'
-                bat '"C:\\Users\\Suhail.DESKTOP-0CIIIA7\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" -m pytest -v'
+                bat 'python -m pytest -v'
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image...'
-                bat 'docker build -t jenkins-calc-1-app:1.0 .'
+                bat 'docker build -t %IMAGE_NAME%:%IMAGE_TAG% .'
             }
         }
 
-        
-        
-        stage('Verify Token Fingerprint') {
+        stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKERHUB_USERNAME',
-                    passwordVariable: 'DOCKERHUB_TOKEN'
-                )]) {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    )
+                ]) {
                     powershell '''
-                        $token = $env:DOCKERHUB_TOKEN
-                        $bytes = [System.Text.Encoding]::UTF8.GetBytes($token)
-                        $sha = [System.Security.Cryptography.SHA256]::Create()
-                        $hash = [BitConverter]::ToString(
-                            $sha.ComputeHash($bytes)
-                        ).Replace("-", "")
+                        try {
+                            Write-Host "Logging in to Docker Hub..."
 
-                        Write-Host "Username: $env:DOCKERHUB_USERNAME"
-                        Write-Host "Jenkins token fingerprint: $hash"
+                            $env:DOCKERHUB_TOKEN | docker login `
+                                --username $env:DOCKERHUB_USERNAME `
+                                --password-stdin
+
+                            if ($LASTEXITCODE -ne 0) {
+                                throw "Docker Hub login failed"
+                            }
+
+                            Write-Host "Docker Hub login successful!"
+
+                            Write-Host "Tagging Docker image..."
+
+                            docker tag `
+                                jenkins-calc-1-app:1.0 `
+                                "$env:DOCKERHUB_USERNAME/jenkins-calc-1-app:1.0"
+
+                            if ($LASTEXITCODE -ne 0) {
+                                throw "Docker image tagging failed"
+                            }
+
+                            Write-Host "Pushing image to Docker Hub..."
+
+                            docker push "$env:DOCKERHUB_USERNAME/jenkins-calc-1-app:1.0"
+
+                            if ($LASTEXITCODE -ne 0) {
+                                throw "Docker image push failed"
+                            }
+
+                            Write-Host "Docker image pushed successfully!"
+                        }
+                        finally {
+                            Write-Host "Logging out of Docker Hub..."
+                            docker logout
+                        }
                     '''
                 }
             }
         }
-        
+
         stage('Run Docker Container') {
             steps {
-                echo 'Running application inside Docker...'
-                bat 'docker run --rm jenkins-calc-1-app:1.0'
+                bat 'docker run --rm drek001/jenkins-calc-1-app:1.0'
             }
         }
 
         stage('Run Application') {
             steps {
-                bat '"C:\\Users\\Suhail.DESKTOP-0CIIIA7\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" app.py'
+                bat 'python app.py'
             }
         }
     }
 
     post {
         success {
-            echo 'CI Pipeline completed successfully!'
+            echo 'CI/CD Pipeline completed successfully!'
         }
+
         failure {
-            echo 'CI Pipeline failed!'
+            echo 'CI/CD Pipeline failed. Check the console output.'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
         }
     }
 }
