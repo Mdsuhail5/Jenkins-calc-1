@@ -7,6 +7,7 @@ pipeline {
     }
 
     environment {
+        PYTHON = 'C:\\Users\\Suhail.DESKTOP-0CIIIA7\\AppData\\Local\\Programs\\Python\\Python310\\python.exe'
         IMAGE_NAME = 'jenkins-calc-1-app'
         IMAGE_TAG = '1.0'
         DOCKERHUB_REPO = 'drek001/jenkins-calc-1-app'
@@ -23,20 +24,20 @@ pipeline {
 
         stage('Check Python and Docker') {
             steps {
-                bat 'python --version'
+                bat '"%PYTHON%" --version'
                 bat 'docker --version'
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                bat 'python -m pip install -r requirements.txt'
+                bat '"%PYTHON%" -m pip install -r requirements.txt'
             }
         }
 
         stage('Run Tests') {
             steps {
-                bat 'python -m pytest -v'
+                bat '"%PYTHON%" -m pytest -v'
             }
         }
 
@@ -69,19 +70,15 @@ pipeline {
 
                             Write-Host "Docker Hub login successful!"
 
-                            Write-Host "Tagging Docker image..."
+                            $image = "$env:DOCKERHUB_USERNAME/jenkins-calc-1-app:1.0"
 
-                            docker tag `
-                                jenkins-calc-1-app:1.0 `
-                                "$env:DOCKERHUB_USERNAME/jenkins-calc-1-app:1.0"
+                            docker tag jenkins-calc-1-app:1.0 $image
 
                             if ($LASTEXITCODE -ne 0) {
                                 throw "Docker image tagging failed"
                             }
 
-                            Write-Host "Pushing image to Docker Hub..."
-
-                            docker push "$env:DOCKERHUB_USERNAME/jenkins-calc-1-app:1.0"
+                            docker push $image
 
                             if ($LASTEXITCODE -ne 0) {
                                 throw "Docker image push failed"
@@ -90,7 +87,6 @@ pipeline {
                             Write-Host "Docker image pushed successfully!"
                         }
                         finally {
-                            Write-Host "Logging out of Docker Hub..."
                             docker logout
                         }
                     '''
@@ -106,7 +102,7 @@ pipeline {
 
         stage('Run Application') {
             steps {
-                bat 'python app.py'
+                bat '"%PYTHON%" app.py'
             }
         }
     }
