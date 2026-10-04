@@ -47,7 +47,8 @@ pipeline {
             }
         }
 
-        stage('Push to Docker Hub') {
+        
+        stage('Debug Docker Credentials') {
             steps {
                 withCredentials([
                     usernamePassword(
@@ -57,38 +58,14 @@ pipeline {
                     )
                 ]) {
                     powershell '''
-                        try {
-                            Write-Host "Logging in to Docker Hub..."
+                        Write-Host "Username received: [$env:DOCKERHUB_USERNAME]"
+                        Write-Host "Token length: $($env:DOCKERHUB_TOKEN.Length)"
 
-                            $env:DOCKERHUB_TOKEN | docker login `
-                                --username $env:DOCKERHUB_USERNAME `
-                                --password-stdin
+                        $bytes = [System.Text.Encoding]::UTF8.GetBytes($env:DOCKERHUB_TOKEN)
+                        $sha = [System.Security.Cryptography.SHA256]::Create()
+                        $hash = [BitConverter]::ToString($sha.ComputeHash($bytes)).Replace("-", "")
 
-                            if ($LASTEXITCODE -ne 0) {
-                                throw "Docker Hub login failed"
-                            }
-
-                            Write-Host "Docker Hub login successful!"
-
-                            $image = "$env:DOCKERHUB_USERNAME/jenkins-calc-1-app:1.0"
-
-                            docker tag jenkins-calc-1-app:1.0 $image
-
-                            if ($LASTEXITCODE -ne 0) {
-                                throw "Docker image tagging failed"
-                            }
-
-                            docker push $image
-
-                            if ($LASTEXITCODE -ne 0) {
-                                throw "Docker image push failed"
-                            }
-
-                            Write-Host "Docker image pushed successfully!"
-                        }
-                        finally {
-                            docker logout
-                        }
+                        Write-Host "Token fingerprint: $hash"
                     '''
                 }
             }
