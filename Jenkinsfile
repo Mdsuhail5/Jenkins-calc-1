@@ -39,7 +39,7 @@ pipeline {
 
         
         
-        stage('Push to Docker Hub') {
+        stage('Verify Token Fingerprint') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
@@ -47,22 +47,15 @@ pipeline {
                     passwordVariable: 'DOCKERHUB_TOKEN'
                 )]) {
                     powershell '''
-                        $ErrorActionPreference = "Stop"
+                        $token = $env:DOCKERHUB_TOKEN
+                        $bytes = [System.Text.Encoding]::UTF8.GetBytes($token)
+                        $sha = [System.Security.Cryptography.SHA256]::Create()
+                        $hash = [BitConverter]::ToString(
+                            $sha.ComputeHash($bytes)
+                        ).Replace("-", "")
 
-                        try {
-                            $env:DOCKERHUB_TOKEN | docker login --username $env:DOCKERHUB_USERNAME --password-stdin
-                            if ($LASTEXITCODE -ne 0) { exit 1 }
-
-                            docker tag jenkins-calc-1-app:1.0 "$env:DOCKERHUB_USERNAME/jenkins-calc-1-app:1.0"
-                            if ($LASTEXITCODE -ne 0) { exit 1 }
-
-                            docker push "$env:DOCKERHUB_USERNAME/jenkins-calc-1-app:1.0"
-                            if ($LASTEXITCODE -ne 0) { exit 1 }
-
-                        }
-                        finally {
-                            docker logout
-                        }
+                        Write-Host "Username: $env:DOCKERHUB_USERNAME"
+                        Write-Host "Jenkins token fingerprint: $hash"
                     '''
                 }
             }
